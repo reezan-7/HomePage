@@ -88,7 +88,6 @@ class _SendFeedbackPageState extends State<SendFeedbackPage> {
                 });
               },
             )
-
           ],
         ),
       ),

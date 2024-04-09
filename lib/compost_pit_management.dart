@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart'as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'FormsDirectory/api_services.dart';
+import 'FormsDirectory/location_model.dart';
 import 'FormsDirectory/village_list.dart';
 
 class CPMPage extends StatefulWidget {
@@ -30,28 +32,30 @@ class _CPMPageState extends State<CPMPage> {
     }
   }
 
-  Future<List<VillageList>> getPost() async {
-    try {
-      final response = await http.get(
-        Uri.parse('http://172.235.0.221:8000/farmerregister/village_list/'),
-      );
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        return data.map((e) {
-          final map = e as Map<String, dynamic>;
-          return VillageList(
-            villageId: map['village_id'],
-            villageName: map['village_name'],
-          );
-        }).toList();
-      } else {
-        throw Exception('Failed to load data: ${response.statusCode}');
-      }
-    } on SocketException {
-      throw Exception('No Internet');
-    } catch (e) {
-      throw Exception('Error Fetching Data: $e');
-    }
+  List<States> stateList=[];
+  List<Province> provinceList=[];
+
+  //temp list
+  List<Province> tempList=[];
+
+  String? states;
+  String? province;
+
+  var isLoading=true;
+
+  populateDropdowns()async{
+    LocationModel data=await getData();
+    setState(() {
+      stateList=data.states;
+      provinceList=data.provinces;
+      isLoading = false;
+    });
+  }
+
+  @override
+  void initState() {
+    populateDropdowns();
+    super.initState();
   }
 
   @override
@@ -74,107 +78,97 @@ class _CPMPageState extends State<CPMPage> {
           child: Column(
             children: [
               Container(
-                padding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
-                color: Colors.amber[100], // Highlighted area color
+                padding: EdgeInsets.symmetric(vertical: 25.0, horizontal: 16.0),
+                decoration: BoxDecoration(
+                  color: Colors.amber[100], // Highlighted area color
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(50.0),
+                    bottomRight: Radius.circular(50.0),
+                  ),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: EdgeInsets.symmetric(vertical: 10, horizontal: 35),
-                      child: FutureBuilder<List<VillageList>>(
-                        future: getPost(),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
-                            // Show a loading indicator while waiting for the future to complete
-                            return CircularProgressIndicator();
-                          } else if (snapshot.hasError) {
-                            // Show the error message if an error occurs
-                            return Text(
-                              'Error: ${snapshot.error}',
-                              style: TextStyle(color: Colors.red),
-                            );
-                          } else if (snapshot.hasData) {
-                            // Render the dropdown button if data is available
-                            return DropdownButtonFormField(
-                              isExpanded: true,
-                              hint: Text(
-                                  '   Select a Village',
-                                style: TextStyle(color: Colors.black),
-                              ),
-                              value: selectedValue,
-                              icon: Icon(Icons.arrow_drop_down), // Add dropdown icon
-                              iconSize: 24, // Set icon size
-                              elevation: 16,
-                              style: TextStyle(color: Colors.black),
-                              items: snapshot.data!.map((e) {
-                                return DropdownMenuItem(
-                                  value: e.villageId.toString(),
-                                  child: Text(
-                                    e.villageName.toString(),
-                                    style: TextStyle(
-                                    color: Colors.black, // Set dropdown item text color
-                                  ),
-                                  ),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                selectedValue = value;
-                                setState(() {});
-                              },
-                              validator: (value) {
-                                if (value == null) {
-                                  return 'Please select a village';
-                                }
-                                return null;
-                              },
-                              decoration: InputDecoration(
-                                filled: true,
-                                fillColor: Colors.grey[350], // Set dropdown background color
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10.0),
-                                  borderSide: BorderSide.none, // Hide dropdown border
-                                ),
-                                contentPadding: EdgeInsets.symmetric(vertical: 5.0),
-                              ),
-                            );
-                          } else {
-                            // If none of the above conditions are met, return an empty container
-                            // This case shouldn't typically happen, but it's good to handle it
-                            return Container();
-                          }
+                      padding: EdgeInsets.symmetric(vertical: 10,horizontal: 35),
+                      child: DropdownButtonFormField(
+                        isExpanded: true,
+                        hint: Text(
+                          '   Please select a village',
+                          style: TextStyle(color: Colors.black),
+                        ),
+                        value: states,
+                        icon: Icon(Icons.arrow_drop_down), // Add dropdown icon
+                        iconSize: 24, // Set icon size
+                        elevation: 16,
+                        style: TextStyle(color: Colors.black),
+                        items: stateList.map((e){
+                          return DropdownMenuItem(
+                            value: e.id.toString(),
+                            child: Text(e.name),
+                          );
+                        }).toList(),
+                        onChanged: (newValue){
+                          setState((){
+                            province=null;
+                            states=newValue.toString();
+                            //filtering acc to states
+                            tempList = provinceList.where((element) =>element.stateId.toString()==states.toString(),
+                            ).toList();
+                          });
                         },
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Please select a village';
+                          }
+                          return null;
+                        },
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.grey[350], // Set dropdown background color
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                            borderSide: BorderSide.none, // Hide dropdown border
+                          ),
+                          contentPadding: EdgeInsets.symmetric(vertical: 5.0),
+                        ),
                       ),
                     ),
-              Container(
-                padding: EdgeInsets.symmetric(vertical: 10,horizontal: 45),
-                child: DropdownButtonFormField(
-                  isExpanded: true,
-                  value: null, // Set initial value to null
-                  hint: Text(
-                    '   Please select a farmer',
-                    style: TextStyle(
-                      color: Colors.black, // Change hint text color
-                    ),
-                  ),
-                  icon: Icon(Icons.arrow_drop_down), // Add dropdown icon
-                  iconSize: 24, // Set icon size
-                  elevation: 16,
-                  style: TextStyle(color: Colors.black), // Set text color
-                  onChanged: (value) {
-                    // Handle onChanged event if needed
-                  },
-                  items: [], // Empty items list
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: Colors.grey[350], // Set dropdown background color
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10.0),
-                      borderSide: BorderSide.none, // Hide dropdown border
-                    ),
-                    contentPadding: EdgeInsets.symmetric(vertical: 5.0),
-                  ),
-                ),
-              ),
+                    Container(
+                      padding: EdgeInsets.symmetric(vertical: 10,horizontal: 45),
+                      child: DropdownButtonFormField(
+                        isExpanded: true,
+                        hint: Text(
+                            '   Please select a farmer',
+                          style: TextStyle(color: Colors.black),
+                        ),
+                        value: province,
+                        icon: Icon(Icons.arrow_drop_down), // Add dropdown icon
+                        iconSize: 24, // Set icon size
+                        elevation: 16,
+                        style: TextStyle(color: Colors.black),
+                        items: tempList.map((e){
+                          return DropdownMenuItem(
+                            value: e.id.toString(),
+                            child: Text(e.name),
+                          );
+                        }).toList(),
+                        onChanged: (newValue){
+                          setState((){
+                            province=newValue.toString();
+                          });
+                        },
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.grey[350], // Set dropdown background color
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                            borderSide: BorderSide.none, // Hide dropdown border
+                          ),
+                          contentPadding: EdgeInsets.symmetric(vertical: 5.0),
+                        ),
+                      ),
+                    )
                   ],
                 ),
               ),
