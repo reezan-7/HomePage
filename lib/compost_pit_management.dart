@@ -32,22 +32,22 @@ class _CPMPageState extends State<CPMPage> {
     }
   }
 
-  List<States> stateList=[];
-  List<Province> provinceList=[];
+  List<States> villageList=[];
+  List<Province> farmerList=[];
 
   //temp list
   List<Province> tempList=[];
 
-  String? states;
-  String? province;
+  String? villages;
+  String? farmers;
 
   var isLoading=true;
 
   populateDropdowns()async{
     LocationModel data=await getData();
     setState(() {
-      stateList=data.states;
-      provinceList=data.provinces;
+      villageList=data.villages;
+      farmerList=data.farmers;
       isLoading = false;
     });
   }
@@ -97,23 +97,23 @@ class _CPMPageState extends State<CPMPage> {
                           '   Please select a village',
                           style: TextStyle(color: Colors.black),
                         ),
-                        value: states,
+                        value: villages,
                         icon: Icon(Icons.arrow_drop_down), // Add dropdown icon
                         iconSize: 24, // Set icon size
                         elevation: 16,
                         style: TextStyle(color: Colors.black),
-                        items: stateList.map((e){
+                        items: villageList.map((e){
                           return DropdownMenuItem(
-                            value: e.id.toString(),
-                            child: Text(e.name),
+                            value: e.villageId.toString(),
+                            child: Text(e.villageName),
                           );
                         }).toList(),
                         onChanged: (newValue){
                           setState((){
-                            province=null;
-                            states=newValue.toString();
+                            farmers=null;
+                            villages=newValue.toString();
                             //filtering acc to states
-                            tempList = provinceList.where((element) =>element.stateId.toString()==states.toString(),
+                            tempList = farmerList.where((element) =>element.villageName.toString()==villages.toString(),
                             ).toList();
                           });
                         },
@@ -142,20 +142,20 @@ class _CPMPageState extends State<CPMPage> {
                             '   Please select a farmer',
                           style: TextStyle(color: Colors.black),
                         ),
-                        value: province,
+                        value: farmer,
                         icon: Icon(Icons.arrow_drop_down), // Add dropdown icon
                         iconSize: 24, // Set icon size
                         elevation: 16,
                         style: TextStyle(color: Colors.black),
                         items: tempList.map((e){
                           return DropdownMenuItem(
-                            value: e.id.toString(),
-                            child: Text(e.name),
+                            value: e.farmerId.toString(),
+                            child: Text(e.fullName),
                           );
                         }).toList(),
                         onChanged: (newValue){
                           setState((){
-                            province=newValue.toString();
+                            farmer=newValue.toString();
                           });
                         },
                         decoration: InputDecoration(
